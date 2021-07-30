@@ -141,14 +141,7 @@ export default {
     // by zjm16 begin
     // 如果有传值，则认为是反显value的数据，不展示表单设计时的默认值，以value的值为准
     if(this.value){
-      data.formConfCopy.fields.forEach(item => {
-        const val = this.value[item.__vModel__]
-        if (val) {
-          item.__config__.defaultValue = val
-        }else{
-          delete item.__config__.defaultValue
-        }
-      })
+      this.setDefaultValue(data.formConfCopy.fields, this.value)
     }
     // by zjm16 end
     this.initFormData(data.formConfCopy.fields, data[this.formConf.formModel])
@@ -162,7 +155,8 @@ export default {
           this.formConfCopy.datasourceUrl
         ).then((data) => {
           this.formConfCopy.datasource = data
-          this.formConfCopy.fields.forEach( field => {
+          let fields = this.formConfCopy.fields.reduce(this.filterVModel, []);
+          fields.forEach(field => {
             const { dataPath, dataConsumer, dynamicOptions } = field.__config__
             if(field.__config__.dataType=='dynamic'){
               let tempData = dataPath.split('.').reduce((pre, item) => pre[item], data)
@@ -184,6 +178,30 @@ export default {
   },
   // add by zjm16 end
   methods: {
+    // add by ql 过滤带vModel的组件
+    filterVModel(r, a) {
+        if (a.__config__.children) {
+            return a.__config__.children.reduce(this.filterVModel, r)
+        }
+        if (a.__config__.__vModel__) {
+            r.push(a);
+        }
+        return r;
+    },
+    // add by ql
+    setDefaultValue(fields, value) {
+        fields.forEach(item => {
+            const val = value[item.__vModel__]
+            if (val) {
+                item.__config__.defaultValue = val
+            } else {
+                delete item.__config__.defaultValue
+            }
+            if (item.__config__.children) {
+                this.setDefaultValue(item.__config__.children, value)
+            }
+        })
+    },
     initFormData(componentList, formData) {
       componentList.forEach(cur => {
         const config = cur.__config__
